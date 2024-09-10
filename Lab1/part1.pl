@@ -218,7 +218,7 @@ rating(zed, mobility, 3).
 
 % Чемпион с высокой мобильностью может эффективно избегать навыков контроля
 can_avoid_cc(Champion) :-
-    (rating(Champion, mobility, 3); rating(Champion, utility, 3)).
+    (rating(Champion, mobility, 3)).
 
 % Чемпионы, которые накапливают силу в течение игры, становятся сильными на поздних стадиях
 strong_late_game(Champion) :-

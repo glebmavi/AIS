@@ -57,13 +57,19 @@ ATTRIBUTE_RULES = {
 
 
 def extract_preferences(user_input):
-    """ Извлечение предпочтений из текста пользователя. """
+    """
+    Извлечение предпочтений из текста пользователя.
+    Функция проверяет на наличие ключевых слов для ролей, позиций и атрибутов.
+    Если найдено совпадение, оно добавляется в соответствующий список (roles, positions, attributes).
+    Возвращает словарь с предпочтениями в виде списков.
+    """
     user_input = user_input.lower()
 
+    # Изменяем preferences так, чтобы они могли хранить несколько значений в виде списков
     preferences = {
-        'role': None,
-        'position': None,
-        'attribute': None
+        'roles': [],  # Список для нескольких ролей
+        'positions': [],  # Список для нескольких позиций
+        'attributes': []  # Список для нескольких атрибутов
     }
 
     def match_keyword(phrase, keywords):
@@ -72,59 +78,93 @@ def extract_preferences(user_input):
                 return True
         return False
 
-    # Ищем ключевые слова для ролей, позиций и атрибутов
+    # Ищем ключевые слова для ролей, позиций и атрибутов и добавляем их в соответствующие списки
     for role, keywords in ROLES.items():
         if match_keyword(user_input, keywords):
-            preferences['role'] = role
+            preferences['roles'].append(role)  # Добавляем роли в список
+
     for position, keywords in POSITIONS.items():
         if match_keyword(user_input, keywords):
-            preferences['position'] = position
+            preferences['positions'].append(position)  # Добавляем позиции в список
+
     for attribute, keywords in ATTRIBUTES.items():
         if match_keyword(user_input, keywords):
-            preferences['attribute'] = attribute
+            preferences['attributes'].append(attribute)  # Добавляем атрибуты в список
 
     return preferences
 
 
 def query_champions(preferences):
-    """ Генерация запроса к базе знаний на основе предпочтений. """
-    query_str = ""
+    """
+    Генерация нескольких запросов к базе знаний на основе предпочтений.
+    Функция выполняет отдельные запросы для ролей, позиций и атрибутов.
+    Объединяет результаты запросов, возвращая чемпионов, соответствующих хотя бы одному предпочтению.
+    """
+    champions_set = set()  # Используем множество, чтобы избежать дубликатов
 
-    if preferences['role']:
-        query_str += f"role(Champion, {preferences['role']}), "
+    # Запрос для ролей
+    if preferences['roles']:
+        for role in preferences['roles']:
+            role_query = f"role(Champion, {role})"
+            role_champions = list(prolog.query(role_query))
+            champions_set.update([champ['Champion'] for champ in role_champions])
 
-    if preferences['position']:
-        query_str += f"position(Champion, {preferences['position']}), "
+    # Запрос для позиций
+    if preferences['positions']:
+        for position in preferences['positions']:
+            position_query = f"position(Champion, {position})"
+            position_champions = list(prolog.query(position_query))
+            champions_set.update([champ['Champion'] for champ in position_champions])
 
-    if preferences['attribute']:
-        prolog_rule = ATTRIBUTE_RULES.get(preferences['attribute'])
-        if prolog_rule:
-            query_str += f"{prolog_rule}(Champion), "
+    # Запрос для атрибутов
+    if preferences['attributes']:
+        for attribute in preferences['attributes']:
+            prolog_rule = ATTRIBUTE_RULES.get(attribute)
+            if prolog_rule:
+                attribute_query = f"{prolog_rule}(Champion)"
+                attribute_champions = list(prolog.query(attribute_query))
+                champions_set.update([champ['Champion'] for champ in attribute_champions])
 
-    # Удаляем последнюю запятую и пробел
-    query_str = query_str.rstrip(', ')
+    # Преобразуем множество обратно в список
+    champions = [{'Champion': champ} for champ in champions_set]
 
-    champions = list(prolog.query(query_str))
     return champions
 
 
 def calculate_confidence(preferences, champion):
-    """ Подсчет уверенности (confidence) на основе совпадений предпочтений. """
+    """
+    Подсчет уверенности (confidence) на основе совпадений предпочтений.
+    Функция проверяет, насколько чемпион соответствует каждому из предпочтений пользователя.
+    Для каждой совпавшей роли, позиции или атрибута увеличивается счет уверенности.
+    Возвращает процент уверенности в виде числа от 0 до 100.
+    """
     confidence = 0
-    total_criteria = len([v for v in preferences.values() if v is not None])
+    total_criteria = 0
 
-    if preferences['role']:
-        if list(prolog.query(f"role({champion}, {preferences['role']})")):
-            confidence += 1
+    # Считаем количество критериев как количество всех предпочтений
+    if preferences['roles']:
+        total_criteria += len(preferences['roles'])
+    if preferences['positions']:
+        total_criteria += len(preferences['positions'])
+    if preferences['attributes']:
+        total_criteria += len(preferences['attributes'])
 
-    if preferences['position']:
-        if list(prolog.query(f"position({champion}, {preferences['position']})")):
-            confidence += 1
+    # Проверяем совпадение по ролям и увеличиваем уверенность за каждую роль
+    if preferences['roles']:
+        for role in preferences['roles']:
+            if list(prolog.query(f"role({champion}, {role})")):
+                confidence += 1  # Увеличиваем уверенность за каждую совпадающую роль
 
-    if preferences['attribute']:
-        prolog_rule = ATTRIBUTE_RULES.get(preferences['attribute'])
-        if prolog_rule and list(prolog.query(f"{prolog_rule}({champion})")):
-            confidence += 1
+    if preferences['positions']:
+        for position in preferences['positions']:
+            if list(prolog.query(f"position({champion}, {position})")):
+                confidence += 1
+
+    if preferences['attributes']:
+        for attribute in preferences['attributes']:
+            prolog_rule = ATTRIBUTE_RULES.get(attribute)
+            if prolog_rule and list(prolog.query(f"{prolog_rule}({champion})")):
+                confidence += 1
 
     if total_criteria == 0:
         return 0
@@ -139,12 +179,12 @@ def main():
 
     # Вывод промежуточных предпочтений
     print("\nИзвлеченные предпочтения:")
-    print(f"Роль: {preferences['role']}")
-    print(f"Позиция: {preferences['position']}")
-    print(f"Атрибут: {preferences['attribute']}")
+    print(f"Роли: {preferences['roles']}")
+    print(f"Позиции: {preferences['positions']}")
+    print(f"Атрибуты: {preferences['attributes']}")
 
     # Проверяем, все ли ключевые предпочтения были найдены
-    if not preferences['role'] and not preferences['position'] and not preferences['attribute']:
+    if not preferences['roles'] and not preferences['positions'] and not preferences['attributes']:
         print("Не удалось распознать ваши предпочтения, попробуйте снова.")
         return
 
@@ -155,7 +195,8 @@ def main():
         print("\nРекомендованные чемпионы:")
         for champ in champions:
             confidence = calculate_confidence(preferences, champ['Champion'])
-            print(f"Чемпион: {champ['Champion']}, Соответствие: {confidence:.2f}%")
+            if confidence > 50:
+                print(f"Чемпион: {champ['Champion']}, Соответствие: {confidence:.2f}%")
     else:
         print("К сожалению, не найдено чемпионов, соответствующих вашим предпочтениям.")
 
