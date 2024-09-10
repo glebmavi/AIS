@@ -239,8 +239,7 @@ can_control(Champion) :-
 % Чемпионы с высоким уроном способны быстро уничтожать противников
 can_one_shot(Champion) :-
     champion(Champion),
-    \+ (role(Champion, vanguard); role(Champion, warden)),
-    format("Because rito balance team", []).
+    \+ (role(Champion, vanguard); role(Champion, warden)).
 
 % Чемпионы с высоким уровнем контроля и полезности являются хорошими саппортами
 good_support(Champion) :-

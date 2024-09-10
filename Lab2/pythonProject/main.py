@@ -13,38 +13,46 @@ prolog.consult("part1.pl")
 
 # Возможные ключевые слова для ролей, позиций и атрибутов
 ROLES = {
-    'assassin': ['убийца', 'ассасин', 'assassin'],
+    'assassin': ['убийца', 'убийц', 'ассасин', 'assassin'],
     'burst': ['бурст', 'burst'],
-    'catcher': ['ловец', 'catcher', 'cc', 'кэтчер'],
-    'diver': ['погружение', 'diver', 'дайвер'],
-    'enchanter': ['саппорт', 'support', 'enchanter'],
+    'catcher': ['ловец', 'ловц', 'catcher', 'cc', 'кэтчер'],
+    'diver': ['погружение', 'погруж', 'diver', 'дайвер'],
+    'enchanter': ['enchanter', 'чародейка', 'чарод'],
     'juggernaut': ['танк', 'juggernaut', 'джаггернаут'],
-    'marksman': ['стрелок', 'адк', 'marksman', 'марксман'],
-    'skirmisher': ['дуэлянт', 'skirmisher', 'скримишер'],
-    'specialist': ['специалист', 'specialist'],
+    'marksman': ['стрелок', 'стрел', 'адк', 'marksman', 'марксман'],
+    'skirmisher': ['дуэлянт', 'дуэл', 'skirmisher', 'скримишер'],
+    'specialist': ['специалист', 'специал', 'specialist'],
     'vanguard': ['вангард', 'vanguard'],
 }
 
 POSITIONS = {
     'top': ['топ', 'верх'],
-    'mid': ['средняя', 'мид'],
+    'mid': ['средняя', 'средн', 'мид'],
     'jungle': ['джангл', 'лес'],
-    'bot': ['бот', 'нижняя', 'ботлейн'],
-    'support': ['саппорт', 'поддержка']
+    'bot': ['бот', 'нижняя', 'нижн', 'ботлейн'],
+    'support': ['саппорт', 'сапп', 'поддержка', 'поддержк']
 }
 
 ATTRIBUTES = {
     'damage': ['урон', 'damage'],
-    'mobility': ['мобильность', 'mobility'],
-    'utility': ['утилита', 'utility'],
-    'tankiness': ['выживаемость', 'tankiness'],
-    'control': ['контроль', 'control'],
-    'support': ['поддержка', 'support', 'саппорт'],
-    'late_game': ['поздняя', 'late', 'late game'],
-    'initiation': ['инициация', 'initiation'],
-    'team_fight': ['командные', 'team fight'],
+    'mobility': ['мобильность', 'мобильн', 'mobility'],
+    'utility': ['утилита', 'утил', 'utility'],
+    'tankiness': ['выживаемость', 'выжив', 'tankiness'],
+    'control': ['контроль', 'контрол', 'control'],
+    'support': ['поддержка', 'поддержк', 'support', 'саппорт', 'сапп'],
+    'late_game': ['поздняя', 'поздн', 'late', 'late game'],
+    'initiation': ['инициация', 'иници', 'initiation', 'инициа'],
+    'team_fight': ['командные', 'команд', 'team fight'],
     'one_shot': ['ваншот', 'one shot'],
+}
 
+ATTRIBUTE_RULES = {
+    'damage': 'can_one_shot',
+    'mobility': 'can_avoid_cc',
+    'support': 'good_support',
+    'late_game': 'strong_late_game',
+    'initiation': 'can_initiate',
+    'team_fight': 'effective_in_teamfights'
 }
 
 
@@ -58,21 +66,27 @@ def extract_preferences(user_input):
         'attribute': None
     }
 
+    def match_keyword(phrase, keywords):
+        for keyword in keywords:
+            if keyword in phrase:
+                return True
+        return False
+
     # Ищем ключевые слова для ролей, позиций и атрибутов
     for role, keywords in ROLES.items():
-        if any(keyword in user_input for keyword in keywords):
+        if match_keyword(user_input, keywords):
             preferences['role'] = role
     for position, keywords in POSITIONS.items():
-        if any(keyword in user_input for keyword in keywords):
+        if match_keyword(user_input, keywords):
             preferences['position'] = position
     for attribute, keywords in ATTRIBUTES.items():
-        if any(keyword in user_input for keyword in keywords):
+        if match_keyword(user_input, keywords):
             preferences['attribute'] = attribute
 
     return preferences
 
 
-def query_champions(preferences):  # TODO: edit attributes according to rules
+def query_champions(preferences):
     """ Генерация запроса к базе знаний на основе предпочтений. """
     query_str = ""
 
@@ -83,16 +97,9 @@ def query_champions(preferences):  # TODO: edit attributes according to rules
         query_str += f"position(Champion, {preferences['position']}), "
 
     if preferences['attribute']:
-        if preferences['attribute'] == 'support':
-            query_str += "good_support(Champion), "
-        elif preferences['attribute'] == 'late_game':
-            query_str += "strong_late_game(Champion), "
-        elif preferences['attribute'] == 'initiation':
-            query_str += "can_initiate(Champion), "
-        elif preferences['attribute'] == 'team_fight':
-            query_str += "effective_in_teamfights(Champion), "
-        elif preferences['attribute'] == 'one_shot':
-            query_str += "can_one_shot(Champion), "
+        prolog_rule = ATTRIBUTE_RULES.get(preferences['attribute'])
+        if prolog_rule:
+            query_str += f"{prolog_rule}(Champion), "
 
     # Удаляем последнюю запятую и пробел
     query_str = query_str.rstrip(', ')
@@ -106,25 +113,22 @@ def calculate_confidence(preferences, champion):
     confidence = 0
     total_criteria = len([v for v in preferences.values() if v is not None])
 
-    if 'role' in preferences and preferences['role']:
+    if preferences['role']:
         if list(prolog.query(f"role({champion}, {preferences['role']})")):
             confidence += 1
 
-    if 'position' in preferences and preferences['position']:
+    if preferences['position']:
         if list(prolog.query(f"position({champion}, {preferences['position']})")):
             confidence += 1
 
-    if 'attribute' in preferences and preferences['attribute']:
-        if preferences['attribute'] == 'damage':
-            if list(prolog.query(f"good_for_damage({champion})")):
-                confidence += 1
-        if preferences['attribute'] == 'support':
-            if list(prolog.query(f"good_for_support({champion})")):
-                confidence += 1
+    if preferences['attribute']:
+        prolog_rule = ATTRIBUTE_RULES.get(preferences['attribute'])
+        if prolog_rule and list(prolog.query(f"{prolog_rule}({champion})")):
+            confidence += 1
 
     if total_criteria == 0:
         return 0
-    return confidence / total_criteria * 100  # процентное совпадение
+    return confidence / total_criteria * 100
 
 
 def main():
@@ -132,6 +136,12 @@ def main():
 
     # Извлекаем предпочтения
     preferences = extract_preferences(user_input)
+
+    # Вывод промежуточных предпочтений
+    print("\nИзвлеченные предпочтения:")
+    print(f"Роль: {preferences['role']}")
+    print(f"Позиция: {preferences['position']}")
+    print(f"Атрибут: {preferences['attribute']}")
 
     # Проверяем, все ли ключевые предпочтения были найдены
     if not preferences['role'] and not preferences['position'] and not preferences['attribute']:
