@@ -11,7 +11,10 @@
     Является базой для рекомендатольной системы по выбору чемпиона в зависимости от игрового стиля игрока.
 */
 
-% Факты с одним аргументом (чемпионы Лиги Легенд). Выбраны рандомно так как их много.
+/*
+    === Факты ===
+    Каждый чемпион описан одним или двумя аргументами: его имя, роль в игре и его характеристики.
+*/
 
 champion(garen).
 champion(lee_sin).
@@ -212,9 +215,10 @@ rating(zed, toughness, 1).
 rating(zed, control, 1).
 rating(zed, mobility, 3).
 
-% Правила
-
-/* Add somewhere a count for different attributes */
+/*
+    === Правила ===
+    Правила определяют некоторые логические зависимости между атрибутами чемпионов.
+*/
 
 % Чемпион с высокой мобильностью может эффективно избегать навыков контроля
 can_avoid_cc(Champion) :-
@@ -223,7 +227,7 @@ can_avoid_cc(Champion) :-
 % Чемпионы, которые накапливают силу в течение игры, становятся сильными на поздних стадиях
 strong_late_game(Champion) :-
     (role(Champion, burst); role(Champion, battlemage); rating(Champion, control, Rating), Rating > 2).
-    
+
 % Если чемпион является танком, то он способен принимать на себя значительный урон и инициировать бои
 can_initiate(Champion) :-
     (role(Champion, juggernaut); role(Champion, diver); role(Champion, vanguard)).
@@ -248,7 +252,9 @@ good_support(Champion) :-
     ControlRating >= 2,
     UtilityRating > 2.
 
-% Запросы
+/*
+    === Запросы ===
+*/
 
 % Простые запросы
 

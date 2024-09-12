@@ -1,14 +1,10 @@
-import re
 from os import putenv
 
 putenv("SWI_HOME_DIR", "C:\\Program Files\\swipl")
 
 from pyswip import Prolog
 
-# Инициализация Prolog
 prolog = Prolog()
-
-# Загрузка базы знаний Prolog
 prolog.consult("part1.pl")
 
 # Возможные ключевые слова для ролей, позиций и атрибутов
@@ -65,11 +61,10 @@ def extract_preferences(user_input):
     """
     user_input = user_input.lower()
 
-    # Изменяем preferences так, чтобы они могли хранить несколько значений в виде списков
     preferences = {
-        'roles': [],  # Список для нескольких ролей
-        'positions': [],  # Список для нескольких позиций
-        'attributes': []  # Список для нескольких атрибутов
+        'roles': [],
+        'positions': [],
+        'attributes': []
     }
 
     def match_keyword(phrase, keywords):
@@ -78,18 +73,17 @@ def extract_preferences(user_input):
                 return True
         return False
 
-    # Ищем ключевые слова для ролей, позиций и атрибутов и добавляем их в соответствующие списки
     for role, keywords in ROLES.items():
         if match_keyword(user_input, keywords):
-            preferences['roles'].append(role)  # Добавляем роли в список
+            preferences['roles'].append(role)
 
     for position, keywords in POSITIONS.items():
         if match_keyword(user_input, keywords):
-            preferences['positions'].append(position)  # Добавляем позиции в список
+            preferences['positions'].append(position)
 
     for attribute, keywords in ATTRIBUTES.items():
         if match_keyword(user_input, keywords):
-            preferences['attributes'].append(attribute)  # Добавляем атрибуты в список
+            preferences['attributes'].append(attribute)
 
     return preferences
 
@@ -100,23 +94,20 @@ def query_champions(preferences):
     Функция выполняет отдельные запросы для ролей, позиций и атрибутов.
     Объединяет результаты запросов, возвращая чемпионов, соответствующих хотя бы одному предпочтению.
     """
-    champions_set = set()  # Используем множество, чтобы избежать дубликатов
+    champions_set = set()
 
-    # Запрос для ролей
     if preferences['roles']:
         for role in preferences['roles']:
             role_query = f"role(Champion, {role})"
             role_champions = list(prolog.query(role_query))
             champions_set.update([champ['Champion'] for champ in role_champions])
 
-    # Запрос для позиций
     if preferences['positions']:
         for position in preferences['positions']:
             position_query = f"position(Champion, {position})"
             position_champions = list(prolog.query(position_query))
             champions_set.update([champ['Champion'] for champ in position_champions])
 
-    # Запрос для атрибутов
     if preferences['attributes']:
         for attribute in preferences['attributes']:
             prolog_rule = ATTRIBUTE_RULES.get(attribute)
@@ -125,7 +116,6 @@ def query_champions(preferences):
                 attribute_champions = list(prolog.query(attribute_query))
                 champions_set.update([champ['Champion'] for champ in attribute_champions])
 
-    # Преобразуем множество обратно в список
     champions = [{'Champion': champ} for champ in champions_set]
 
     return champions
@@ -141,7 +131,6 @@ def calculate_confidence(preferences, champion):
     confidence = 0
     total_criteria = 0
 
-    # Считаем количество критериев как количество всех предпочтений
     if preferences['roles']:
         total_criteria += len(preferences['roles'])
     if preferences['positions']:
@@ -149,11 +138,11 @@ def calculate_confidence(preferences, champion):
     if preferences['attributes']:
         total_criteria += len(preferences['attributes'])
 
-    # Проверяем совпадение по ролям и увеличиваем уверенность за каждую роль
+    # Проверяем совпадение по критерию и увеличиваем уверенность за каждое совпадение
     if preferences['roles']:
         for role in preferences['roles']:
             if list(prolog.query(f"role({champion}, {role})")):
-                confidence += 1  # Увеличиваем уверенность за каждую совпадающую роль
+                confidence += 1
 
     if preferences['positions']:
         for position in preferences['positions']:
@@ -174,21 +163,17 @@ def calculate_confidence(preferences, champion):
 def main():
     user_input = input("Опишите свои предпочтения по роли, позиции и атрибутам чемпиона: ")
 
-    # Извлекаем предпочтения
     preferences = extract_preferences(user_input)
 
-    # Вывод промежуточных предпочтений
     print("\nИзвлеченные предпочтения:")
     print(f"Роли: {preferences['roles']}")
     print(f"Позиции: {preferences['positions']}")
     print(f"Атрибуты: {preferences['attributes']}")
 
-    # Проверяем, все ли ключевые предпочтения были найдены
     if not preferences['roles'] and not preferences['positions'] and not preferences['attributes']:
         print("Не удалось распознать ваши предпочтения, попробуйте снова.")
         return
 
-    # Получение рекомендаций
     champions = query_champions(preferences)
 
     if champions:
