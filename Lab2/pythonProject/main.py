@@ -129,14 +129,7 @@ def calculate_confidence(preferences, champion):
     Возвращает процент уверенности в виде числа от 0 до 100.
     """
     confidence = 0
-    total_criteria = 0
-
-    if preferences['roles']:
-        total_criteria += len(preferences['roles'])
-    if preferences['positions']:
-        total_criteria += len(preferences['positions'])
-    if preferences['attributes']:
-        total_criteria += len(preferences['attributes'])
+    total_criteria = len(preferences['roles']) + len(preferences['positions']) + len(preferences['attributes'])
 
     # Проверяем совпадение по критерию и увеличиваем уверенность за каждое совпадение
     if preferences['roles']:
@@ -170,7 +163,7 @@ def main():
     print(f"Позиции: {preferences['positions']}")
     print(f"Атрибуты: {preferences['attributes']}")
 
-    if not preferences['roles'] and not preferences['positions'] and not preferences['attributes']:
+    if not any(preferences.values()):
         print("Не удалось распознать ваши предпочтения, попробуйте снова.")
         return
 
