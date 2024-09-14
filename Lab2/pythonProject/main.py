@@ -22,11 +22,11 @@ ROLES = {
 }
 
 POSITIONS = {
-    'top': ['топ', 'верх'],
-    'mid': ['средняя', 'средн', 'мид'],
-    'jungle': ['джангл', 'лес'],
-    'bot': ['бот', 'нижняя', 'нижн', 'ботлейн'],
-    'support': ['саппорт', 'сапп', 'поддержка', 'поддержк']
+    'top': ['топ', 'верх', 'top'],
+    'mid': ['средняя', 'средн', 'мид', 'mid'],
+    'jungle': ['джангл', 'лес', 'jungle'],
+    'bot': ['бот', 'нижняя', 'нижн', 'ботлейн', 'bot'],
+    'support': ['саппорт', 'сапп', 'поддержка', 'поддержк', 'supp'],
 }
 
 ATTRIBUTES = {
@@ -35,7 +35,6 @@ ATTRIBUTES = {
     'utility': ['утилита', 'утил', 'utility'],
     'tankiness': ['выживаемость', 'выжив', 'tankiness'],
     'control': ['контроль', 'контрол', 'control'],
-    'support': ['поддержка', 'поддержк', 'support', 'саппорт', 'сапп'],
     'late_game': ['поздняя', 'поздн', 'late', 'late game'],
     'initiation': ['инициация', 'иници', 'initiation', 'инициа'],
     'team_fight': ['командные', 'команд', 'team fight'],
@@ -43,12 +42,15 @@ ATTRIBUTES = {
 }
 
 ATTRIBUTE_RULES = {
-    'damage': 'can_one_shot',
+    'damage': 'high_damage',
     'mobility': 'can_avoid_cc',
-    'support': 'good_support',
+    'utility': 'good_utility',
+    'tankiness': 'high_tankiness',
+    'control': 'can_control',
     'late_game': 'strong_late_game',
     'initiation': 'can_initiate',
-    'team_fight': 'effective_in_teamfights'
+    'team_fight': 'effective_in_teamfights',
+    'one_shot': 'can_one_shot'
 }
 
 
@@ -171,10 +173,15 @@ def main():
 
     if champions:
         print("\nРекомендованные чемпионы:")
-        for champ in champions:
-            confidence = calculate_confidence(preferences, champ['Champion'])
+        champions_with_confidence = [
+            (champ['Champion'], calculate_confidence(preferences, champ['Champion']))
+            for champ in champions
+        ]
+        champions_with_confidence.sort(key=lambda x: x[1], reverse=True)
+
+        for champ, confidence in champions_with_confidence:
             if confidence > 50:
-                print(f"Чемпион: {champ['Champion']}, Соответствие: {confidence:.2f}%")
+                print(f"Чемпион: {champ}, Соответствие: {confidence:.2f}%")
     else:
         print("К сожалению, не найдено чемпионов, соответствующих вашим предпочтениям.")
 

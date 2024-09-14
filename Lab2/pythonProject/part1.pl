@@ -220,14 +220,30 @@ rating(zed, mobility, 3).
     Правила определяют некоторые логические зависимости между атрибутами чемпионов.
 */
 
-% Чемпион с высокой мобильностью может эффективно избегать навыков контроля
+% Чемпионы с высоким уроном
+high_damage(Champion) :-
+    (rating(Champion, damage, 3)).
+
+% Чемпионы с высокой мобильностью которые могут эффективно избегать навыков контроля
 can_avoid_cc(Champion) :-
     (rating(Champion, mobility, 3)).
 
+% Чемпионы с высоким контролем
+good_utility(Champion) :-
+    (rating(Champion, control, 3)).
+
+% Чемпионы с высокой выживаемостью
+high_tankiness(Champion) :-
+    (rating(Champion, toughness, 3); role(Champion, vanguard); role(Champion, juggernaut)).
+
+% Чемпионы с высоким контролем способные ограничивать движение противников
+can_control(Champion) :-
+    (role(Champion, catcher); role(Champion, enchanter); rating(Champion, control, Rating), Rating > 2).
+
 % Чемпионы, которые накапливают силу в течение игры, становятся сильными на поздних стадиях
 strong_late_game(Champion) :-
-    (role(Champion, burst); role(Champion, battlemage); rating(Champion, control, Rating), Rating > 2).
-
+    (role(Champion, burst); role(Champion, marksman); rating(Champion, control, Rating), Rating > 2).
+    
 % Если чемпион является танком, то он способен принимать на себя значительный урон и инициировать бои
 can_initiate(Champion) :-
     (role(Champion, juggernaut); role(Champion, diver); role(Champion, vanguard)).
@@ -236,21 +252,9 @@ can_initiate(Champion) :-
 effective_in_teamfights(Champion) :-
     (role(Champion, burst); role(Champion, juggernaut); role(Champion, catcher); role(Champion, enchanter)).
 
-% Чемпионы с высоким контролем способны ограничивать движение противников
-can_control(Champion) :-
-    (role(Champion, catcher); role(Champion, enchanter); rating(Champion, control, Rating), Rating > 2).
-
 % Чемпионы с высоким уроном способны быстро уничтожать противников
 can_one_shot(Champion) :-
-    champion(Champion),
-    \+ (role(Champion, vanguard); role(Champion, warden)).
-
-% Чемпионы с высоким уровнем контроля и полезности являются хорошими саппортами
-good_support(Champion) :-
-    rating(Champion, control, ControlRating),
-    rating(Champion, utility, UtilityRating),
-    ControlRating >= 2,
-    UtilityRating > 2.
+    (role(Champion, burst); role(Champion, marksman); role(Champion, assassin)).
 
 /*
     === Запросы ===
@@ -279,9 +283,11 @@ findall(Champion, can_control(Champion), Result).
 Чемпионы с высоким контролем и являющиеся стрелками
 role(Champion, marksman), rating(Champion, control, 3).
 
-Получение чемпионов по правилу good_support
-findall(Champion, good_support(Champion), Result).
+Чемпионы с высоким уроном, one shot и мидлайнеры
+findall(Champion, (high_damage(Champion), can_one_shot(Champion), position(Champion, mid)), Result).
 
+Чемпионы с высокой выживаемостью для верхней линии
+findall(Champion, (high_tankiness(Champion), position(Champion, top)), Result).
 
 Количество чемпионов с ролью diver
 aggregate_all(count, role(_, diver), Count).
