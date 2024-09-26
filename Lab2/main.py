@@ -1,8 +1,23 @@
+import subprocess
+import sys
+
+
+def install_pyswip():
+    subprocess.check_call(
+        [sys.executable, "-m", "pip", "install", "git+https://github.com/yuce/pyswip@master#egg=pyswip"])
+
+
+try:
+    from pyswip import Prolog
+except ImportError:
+    print("Установка библиотеки PySWIP...")
+    install_pyswip()
+    from pyswip import Prolog
+
 from os import putenv
 
 putenv("SWI_HOME_DIR", "C:\\Program Files\\swipl")
 
-from pyswip import Prolog
 
 prolog = Prolog()
 prolog.consult("part1.pl")
